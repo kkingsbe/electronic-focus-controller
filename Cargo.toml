@@ -13,6 +13,7 @@ egui_render_wgpu = { version = "0.8.0", optional = true }
 egui_render_three_d = { version = "0.8.0", optional = true }
 serde_json = "=1.0.1"
 serialport="4.3.0"
+hidapi = "2.6.1"
 
 [features]
 default = ["egui_default", "three_d"]
