@@ -1,9 +1,10 @@
 extern crate hidapi;
 
-use std::io::Read;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use hidapi::DeviceInfo;
+
+use crate::windows_volume_controller::WindowsVolumeController;
 
 fn get_device_ids() -> Vec<u16> {
     let api = hidapi::HidApi::new().expect("Failed to create HID API");
@@ -69,7 +70,8 @@ pub struct Knob {
     last_command_time: u64,
     command_debounce_duration: u64,
     control_mode: KnobControlMode,
-    device: Option<hidapi::HidDevice>
+    device: Option<hidapi::HidDevice>,
+    volume_controller: WindowsVolumeController
 }
 
 impl Knob {
@@ -82,7 +84,8 @@ impl Knob {
             last_command_time: 0,
             command_debounce_duration: 150, //ms
             control_mode: KnobControlMode::Setpoint,
-            device: None
+            device: None,
+            volume_controller: WindowsVolumeController::new()
         }
     }
 
@@ -94,6 +97,8 @@ impl Knob {
 
         let device = api.open(VENDOR_ID, PRODUCT_ID).expect("Failed to open device");
         device.set_blocking_mode(false).expect("Failed to set blocking mode");
+
+        //self.volume_controller.init();
 
         self.device = Some(device);
     }

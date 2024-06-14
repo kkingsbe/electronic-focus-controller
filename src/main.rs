@@ -2,6 +2,7 @@
 
 mod focus_controller;
 mod knob;
+mod windows_volume_controller;
 
 use egui::Align2;
 use egui_overlay::EguiOverlay;
