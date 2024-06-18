@@ -82,7 +82,7 @@ impl Knob {
             speed_sensitivity: 10.0,
             last_command: KnobCommand::NOP,
             last_command_time: 0,
-            command_debounce_duration: 150, //ms
+            command_debounce_duration: 200, //ms
             control_mode: KnobControlMode::Setpoint,
             device: None,
             volume_controller: WindowsVolumeController::new()
@@ -205,12 +205,17 @@ impl Knob {
 }
 
 pub trait FocusEventHandler {
+    fn set_speed(&mut self, speed: i32);
     fn get_speed(&self) -> i32;
     fn get_setpoint(&self) -> i32;
     fn get_control_mode(&self) -> KnobControlMode;
 }
 
 impl FocusEventHandler for Knob {
+    fn set_speed(&mut self, speed: i32) {
+        self.speed = speed;
+    }
+
     fn get_speed(&self) -> i32 {
         return self.speed;
     }

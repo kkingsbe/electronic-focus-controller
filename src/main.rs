@@ -130,9 +130,9 @@ impl EguiOverlay for ElectronicFocus {
             }
 
             if motor_speed_str != "" && motor_speed_str.parse::<f32>().is_ok() {
-                self.focus_controller.speed = motor_speed_str.parse().unwrap();
+                self.focus_controller.set_speed(motor_speed_str.parse().unwrap());
             } else {
-                self.focus_controller.speed = 0.0;
+                self.focus_controller.set_speed(0);
             }
 
             if send_command {
