@@ -23,7 +23,7 @@ impl FocusController {
             selected_port_name: String::new(),
             port_ref: None,
             control_mode: "position".to_string(),
-            knob_driver: Knob::new()
+            knob_driver: Knob::new(5.0, 100, 3.)
         }
     }
 
@@ -50,7 +50,7 @@ impl FocusController {
 
         //let delta = self.intended_step_position - self.step_position;
         let mut port = self.port_ref.as_ref().unwrap().try_clone().expect("Failed to clone port");
-        let command = format!("move {} {}\n", self.speed, self.intended_step_position);
+        let command = format!("move {} {}\n", 100.0/*self.speed*/, self.intended_step_position);
 
         println!("{}", command);
         port.write(command.as_bytes()).expect("Failed to write to port");

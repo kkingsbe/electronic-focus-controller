@@ -6,6 +6,8 @@ use hidapi::DeviceInfo;
 
 use crate::windows_volume_controller::WindowsVolumeController;
 
+const EXPONENT_BASE: f32 = 1.1;
+
 fn get_device_ids() -> Vec<u16> {
     let api = hidapi::HidApi::new().expect("Failed to create HID API");
     return api.device_list().map(|device| device.product_id()).collect();
@@ -71,21 +73,29 @@ pub struct Knob {
     command_debounce_duration: u64,
     control_mode: KnobControlMode,
     device: Option<hidapi::HidDevice>,
-    volume_controller: WindowsVolumeController
+    volume_controller: WindowsVolumeController,
+    tps_window: f32,
+    tps_buffer_length: u64,
+    tick_timestamps: Vec<u64>,
+    last_tick: u64
 }
 
 impl Knob {
-    pub fn new() -> Knob {
+    pub fn new(tps_window: f32, tps_buffer_length: u64, speed_sensitivity: f32) -> Knob {
         return Knob {
             speed: 50,
             desired_position: 0,
-            speed_sensitivity: 10.0,
+            speed_sensitivity,
             last_command: KnobCommand::NOP,
             last_command_time: 0,
-            command_debounce_duration: 150, //ms
+            command_debounce_duration: 10/*200*/, //ms
             control_mode: KnobControlMode::Setpoint,
             device: None,
-            volume_controller: WindowsVolumeController::new()
+            volume_controller: WindowsVolumeController::new(),
+            tps_window,
+            tps_buffer_length,
+            tick_timestamps: Vec::new(),
+            last_tick: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
         }
     }
 
@@ -177,6 +187,25 @@ impl Knob {
     }
 
     fn update_setpoint(&mut self, direction: KnobDirection) {
+        //update speed based off of how fast the knob is turned
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+        self.last_tick = now;
+        
+        if self.tick_timestamps.len() > self.tps_buffer_length as usize {
+            self.tick_timestamps.remove(0);
+        }
+
+        self.tick_timestamps.retain(|&t| (now - t) as f32 <= self.tps_window * 1000.0);
+        self.tick_timestamps.push(now);
+
+        //println!("Tick timestamps: {:#?}", self.tick_timestamps);
+
+        let avg_tps = ((self.tick_timestamps.len() as f32) / (self.tps_window as f32)) as f32;
+        let scaled_tps = EXPONENT_BASE.powf(avg_tps - 1.0);
+
+        println!("Scaled tps: {}", (scaled_tps/* * self.speed_sensitivity*/));
+        self.speed = (scaled_tps * self.speed_sensitivity) as i32;
+
         self.desired_position += match direction {
             KnobDirection::Forwards => self.speed as i32,
             KnobDirection::Backwards => -self.speed as i32
