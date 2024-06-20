@@ -1,6 +1,7 @@
 use std::io::{BufRead, BufReader};
 use std::time::Duration;
-use crate::knob::{FocusEventHandler, Knob, KnobControlMode};
+//use crate::knob::{Knob, KnobControlMode};
+use crate::gamepad::{FocusEventHandler, GamepadDriver};
 
 pub struct FocusController {
     pub speed: f32,
@@ -11,7 +12,7 @@ pub struct FocusController {
     pub selected_port_name: String,
     pub port_ref: Option<Box<dyn serialport::SerialPort>>,
     pub control_mode: String,
-    knob_driver: Knob
+    gamepad_driver: GamepadDriver
 }
 
 impl FocusController {
@@ -25,7 +26,7 @@ impl FocusController {
             selected_port_name: String::new(),
             port_ref: None,
             control_mode: "position".to_string(),
-            knob_driver: Knob::new()
+            gamepad_driver: GamepadDriver::new()
         }
     }
 
@@ -33,7 +34,8 @@ impl FocusController {
         let ports = serialport::available_ports().expect("No ports found!");
         self.serialports = ports.iter().map(|port| port.port_name.clone()).collect();
         self.selected_port_name = self.serialports[0].clone();
-        self.knob_driver.init();
+        //self.knob_driver.init();
+        self.gamepad_driver.init();
     }
 
     fn open_port(&mut self) {
@@ -45,8 +47,8 @@ impl FocusController {
         self.port_ref = Some(port);
     }
 
-    pub fn set_speed(&mut self, speed: i32) {
-        self.speed = speed as f32;
+    pub fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
         self.speed_ui_updated = true;
     }
 
@@ -57,7 +59,7 @@ impl FocusController {
 
         //let delta = self.intended_step_position - self.step_position;
         let mut port = self.port_ref.as_ref().unwrap().try_clone().expect("Failed to clone port");
-        let command = format!("move {} {}\n", 100/*self.speed*/, self.intended_step_position);
+        let command = format!("move {} {}\n", 100/*self.speed*/, self.intended_step_position as i32);
 
         println!("{}", command);
         port.write(command.as_bytes()).expect("Failed to write to port");
@@ -84,20 +86,11 @@ impl FocusController {
     }
 
     pub fn tick(&mut self) {
-        self.knob_driver.tick();
-        self.intended_step_position = self.knob_driver.get_setpoint() as f32;
+        self.gamepad_driver.tick();
+        self.intended_step_position = self.gamepad_driver.get_setpoint() as f32;
+        self.speed = self.gamepad_driver.get_speed() as f32;
 
-        if self.speed_ui_updated {
-            self.knob_driver.set_speed(self.speed as i32);
-            self.speed_ui_updated = false;
-        } else {
-            self.speed = self.knob_driver.get_speed() as f32;
-        }
-
-        self.control_mode = match self.knob_driver.get_control_mode() {
-            KnobControlMode::Setpoint => "setpoint".to_string(),
-            KnobControlMode::Speed => "speed".to_string()
-        };
+        self.control_mode = "setpoint".to_string();
 
         if self.intended_step_position != self.step_position {
             self.move_motor();
