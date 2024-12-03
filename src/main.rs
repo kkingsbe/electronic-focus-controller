@@ -2,6 +2,7 @@
 
 mod focus_controller;
 mod knob;
+mod gamepad;
 mod windows_volume_controller;
 
 use egui::Align2;
@@ -75,7 +76,7 @@ impl EguiOverlay for ElectronicFocus {
 
                 ui.horizontal(|ui| {
                     ui.label("Step Position: ");
-                    ui.label(format!("{:.2}", self.focus_controller.step_position));
+                    ui.label(format!("{:.2}", self.focus_controller.intended_step_position));
                 });
 
                 ui.add_space(VERTICAL_SPACE);
@@ -132,7 +133,7 @@ impl EguiOverlay for ElectronicFocus {
             if motor_speed_str != "" && motor_speed_str.parse::<f32>().is_ok() {
                 self.focus_controller.set_speed(motor_speed_str.parse().unwrap());
             } else {
-                self.focus_controller.set_speed(0);
+                self.focus_controller.set_speed(0.0);
             }
 
             if send_command {
